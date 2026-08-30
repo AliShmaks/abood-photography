@@ -1,0 +1,1 @@
+Put Abood's optimized JPG/WebP/AVIF photos in this folder and reference them from src/data/siteData.js.
