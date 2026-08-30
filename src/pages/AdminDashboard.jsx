@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import imageCompression from "browser-image-compression";
 import {
   ArrowLeft,
   Check,
@@ -65,6 +66,7 @@ export default function AdminDashboard() {
         .select("*")
         .order("display_order", { ascending: true })
         .order("name", { ascending: true }),
+
       supabase
         .from("photos")
         .select("*, categories(name,slug)")
@@ -125,7 +127,9 @@ export default function AdminDashboard() {
 
   async function addCategory(event) {
     event.preventDefault();
+
     const name = categoryName.trim();
+
     if (!name) return;
 
     setBusy(true);
@@ -150,7 +154,9 @@ export default function AdminDashboard() {
   }
 
   async function deleteCategory(category) {
-    const hasPhotos = photos.some((photo) => photo.category_id === category.id);
+    const hasPhotos = photos.some(
+      (photo) => photo.category_id === category.id
+    );
 
     if (hasPhotos) {
       setMessage(
@@ -162,13 +168,17 @@ export default function AdminDashboard() {
     if (!window.confirm(`Delete category "${category.name}"?`)) return;
 
     setBusy(true);
+    setMessage("");
+
     const { error } = await supabase
       .from("categories")
       .delete()
       .eq("id", category.id);
 
     setMessage(error ? error.message : "Category deleted.");
+
     await loadData();
+
     setBusy(false);
   }
 
@@ -183,60 +193,106 @@ export default function AdminDashboard() {
 
     setBusy(true);
 
-    const fileName = `${crypto.randomUUID()}-${safeFilename(upload.file.name)}`;
-    const storagePath = `${selectedCategory.slug}/${fileName}`;
+    try {
+      const originalSize = upload.file.size;
 
-    const { error: storageError } = await supabase.storage
-      .from("portfolio")
-      .upload(storagePath, upload.file, {
-        cacheControl: "3600",
-        upsert: false,
+      setMessage("Optimizing image…");
+
+      const compressedFile = await imageCompression(upload.file, {
+        maxSizeMB: 1.5,
+        maxWidthOrHeight: 2400,
+        useWebWorker: true,
+        fileType: "image/webp",
+        initialQuality: 0.85,
       });
 
-    if (storageError) {
-      setMessage(storageError.message);
-      setBusy(false);
-      return;
+      const originalBaseName =
+        upload.file.name.replace(/\.[^/.]+$/, "") || "photo";
+
+      const fileName = `${crypto.randomUUID()}-${safeFilename(
+        `${originalBaseName}.webp`
+      )}`;
+
+      const storagePath = `${selectedCategory.slug}/${fileName}`;
+
+      setMessage("Uploading optimized image…");
+
+      const { error: storageError } = await supabase.storage
+        .from("portfolio")
+        .upload(storagePath, compressedFile, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: "image/webp",
+        });
+
+      if (storageError) {
+        setMessage(storageError.message);
+        setBusy(false);
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("portfolio")
+        .getPublicUrl(storagePath);
+
+      const { error: dbError } = await supabase.from("photos").insert({
+        category_id: upload.categoryId,
+        title: upload.title.trim() || selectedCategory.name,
+        location: upload.location.trim(),
+        alt_text:
+          upload.altText.trim() ||
+          `${
+            upload.title.trim() || selectedCategory.name
+          } photography by Abood Al Husain`,
+        featured: Boolean(upload.featured),
+        display_order: Number(upload.displayOrder) || 0,
+        image_url: publicUrlData.publicUrl,
+        storage_path: storagePath,
+      });
+
+      if (dbError) {
+        await supabase.storage.from("portfolio").remove([storagePath]);
+
+        setMessage(dbError.message);
+        setBusy(false);
+        return;
+      }
+
+      setUpload((current) => ({
+        ...current,
+        title: "",
+        altText: "",
+        featured: false,
+        displayOrder: 0,
+        file: null,
+      }));
+
+      const input = document.getElementById("admin-photo-file");
+
+      if (input) {
+        input.value = "";
+      }
+
+      const originalMB = (originalSize / 1024 / 1024).toFixed(1);
+      const compressedMB = (
+        compressedFile.size /
+        1024 /
+        1024
+      ).toFixed(1);
+
+      setMessage(
+        `Photo uploaded successfully. ${originalMB} MB → ${compressedMB} MB`
+      );
+
+      await loadData();
+    } catch (error) {
+      console.error("Image compression/upload error:", error);
+
+      setMessage(
+        error?.message || "Could not optimize or upload the image."
+      );
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from("portfolio")
-      .getPublicUrl(storagePath);
-
-    const { error: dbError } = await supabase.from("photos").insert({
-      category_id: upload.categoryId,
-      title: upload.title.trim() || selectedCategory.name,
-      location: upload.location.trim(),
-      alt_text:
-        upload.altText.trim() ||
-        `${upload.title.trim() || selectedCategory.name} photography by Abood Al Husain`,
-      featured: Boolean(upload.featured),
-      display_order: Number(upload.displayOrder) || 0,
-      image_url: publicUrlData.publicUrl,
-      storage_path: storagePath,
-    });
-
-    if (dbError) {
-      await supabase.storage.from("portfolio").remove([storagePath]);
-      setMessage(dbError.message);
-      setBusy(false);
-      return;
-    }
-
-    setUpload((current) => ({
-      ...current,
-      title: "",
-      altText: "",
-      featured: false,
-      displayOrder: 0,
-      file: null,
-    }));
-
-    const input = document.getElementById("admin-photo-file");
-    if (input) input.value = "";
-
-    setMessage("Photo uploaded successfully.");
-    await loadData();
     setBusy(false);
   }
 
@@ -258,23 +314,33 @@ export default function AdminDashboard() {
       }
     }
 
-    const { error } = await supabase.from("photos").delete().eq("id", photo.id);
+    const { error } = await supabase
+      .from("photos")
+      .delete()
+      .eq("id", photo.id);
 
     setMessage(error ? error.message : "Photo deleted.");
+
     await loadData();
+
     setBusy(false);
   }
 
   async function toggleFeatured(photo) {
     setBusy(true);
+    setMessage("");
 
     const { error } = await supabase
       .from("photos")
-      .update({ featured: !photo.featured })
+      .update({
+        featured: !photo.featured,
+      })
       .eq("id", photo.id);
 
     setMessage(error ? error.message : "Photo updated.");
+
     await loadData();
+
     setBusy(false);
   }
 
@@ -284,7 +350,9 @@ export default function AdminDashboard() {
 
     const { error: resetError } = await supabase
       .from("photos")
-      .update({ display_order: 0 })
+      .update({
+        display_order: 0,
+      })
       .eq("category_id", photo.category_id)
       .lt("display_order", 0);
 
@@ -296,7 +364,9 @@ export default function AdminDashboard() {
 
     const { error } = await supabase
       .from("photos")
-      .update({ display_order: -9999 })
+      .update({
+        display_order: -9999,
+      })
       .eq("id", photo.id);
 
     if (error) {
@@ -311,13 +381,18 @@ export default function AdminDashboard() {
 
   async function logout() {
     await supabase.auth.signOut();
-    navigate("/admin", { replace: true });
+
+    navigate("/admin", {
+      replace: true,
+    });
   }
 
   if (checking) {
     return (
       <PageTransition className="page-shell admin-page">
-        <div className="container admin-checking">Checking admin access…</div>
+        <div className="container admin-checking">
+          Checking admin access…
+        </div>
       </PageTransition>
     );
   }
@@ -328,18 +403,28 @@ export default function AdminDashboard() {
         <div className="admin-topbar">
           <div>
             <span className="eyebrow">Supabase CMS</span>
+
             <h1 className="title-lg">Portfolio Manager</h1>
+
             <p className="lead">
-              Create categories and upload Abood’s photos without editing code.
+              Create categories and upload Abood’s photos without editing
+              code.
             </p>
           </div>
 
           <div className="admin-top-actions">
             <Link className="btn btn-outline" to="/portfolio">
-              <ArrowLeft size={16} /> View site
+              <ArrowLeft size={16} />
+              View site
             </Link>
-            <button className="btn btn-outline" type="button" onClick={logout}>
-              <LogOut size={16} /> Sign out
+
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={logout}
+            >
+              <LogOut size={16} />
+              Sign out
             </button>
           </div>
         </div>
@@ -347,7 +432,9 @@ export default function AdminDashboard() {
         {message && (
           <div
             className={`admin-message ${
-              /success|added|deleted|updated/i.test(message) ? "success" : ""
+              /success|added|deleted|updated/i.test(message)
+                ? "success"
+                : ""
             }`}
           >
             {message}
@@ -361,15 +448,19 @@ export default function AdminDashboard() {
                 <span>01</span>
                 <h2>Categories</h2>
               </div>
+
               <Plus size={20} />
             </div>
 
             <form className="admin-form" onSubmit={addCategory}>
               <label>
                 Category name
+
                 <input
                   value={categoryName}
-                  onChange={(e) => setCategoryName(e.target.value)}
+                  onChange={(event) =>
+                    setCategoryName(event.target.value)
+                  }
                   placeholder="Weddings"
                   required
                 />
@@ -377,25 +468,36 @@ export default function AdminDashboard() {
 
               <label>
                 Display order
+
                 <input
                   type="number"
                   value={categoryOrder}
-                  onChange={(e) => setCategoryOrder(e.target.value)}
+                  onChange={(event) =>
+                    setCategoryOrder(event.target.value)
+                  }
                 />
               </label>
 
-              <button className="btn" disabled={busy} type="submit">
+              <button
+                className="btn"
+                disabled={busy}
+                type="submit"
+              >
                 Add category
               </button>
             </form>
 
             <div className="admin-category-list">
               {categories.map((category) => (
-                <div className="admin-category-row" key={category.id}>
+                <div
+                  className="admin-category-row"
+                  key={category.id}
+                >
                   <div>
                     <strong>{category.name}</strong>
                     <small>/{category.slug}</small>
                   </div>
+
                   <button
                     className="icon-button danger"
                     type="button"
@@ -415,25 +517,33 @@ export default function AdminDashboard() {
                 <span>02</span>
                 <h2>Upload photo</h2>
               </div>
+
               <ImagePlus size={20} />
             </div>
 
             <form className="admin-form" onSubmit={uploadPhoto}>
               <label>
                 Category
+
                 <select
                   value={upload.categoryId}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setUpload((current) => ({
                       ...current,
-                      categoryId: e.target.value,
+                      categoryId: event.target.value,
                     }))
                   }
                   required
                 >
-                  <option value="">Choose category</option>
+                  <option value="">
+                    Choose category
+                  </option>
+
                   {categories.map((category) => (
-                    <option value={category.id} key={category.id}>
+                    <option
+                      value={category.id}
+                      key={category.id}
+                    >
                       {category.name}
                     </option>
                   ))}
@@ -442,29 +552,40 @@ export default function AdminDashboard() {
 
               <label>
                 Image
+
                 <input
                   id="admin-photo-file"
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/avif"
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setUpload((current) => ({
                       ...current,
-                      file: e.target.files?.[0] || null,
+                      file: event.target.files?.[0] || null,
                     }))
                   }
                   required
                 />
               </label>
 
+              {upload.file && (
+                <small>
+                  Selected image:{" "}
+                  {(upload.file.size / 1024 / 1024).toFixed(1)} MB
+                  {" — "}
+                  will be optimized automatically before upload.
+                </small>
+              )}
+
               <div className="admin-two-col">
                 <label>
                   Title
+
                   <input
                     value={upload.title}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       setUpload((current) => ({
                         ...current,
-                        title: e.target.value,
+                        title: event.target.value,
                       }))
                     }
                     placeholder="A beautiful evening"
@@ -473,12 +594,13 @@ export default function AdminDashboard() {
 
                 <label>
                   Location
+
                   <input
                     value={upload.location}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       setUpload((current) => ({
                         ...current,
-                        location: e.target.value,
+                        location: event.target.value,
                       }))
                     }
                     placeholder="Amman, Jordan"
@@ -488,12 +610,13 @@ export default function AdminDashboard() {
 
               <label>
                 Alt text
+
                 <input
                   value={upload.altText}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setUpload((current) => ({
                       ...current,
-                      altText: e.target.value,
+                      altText: event.target.value,
                     }))
                   }
                   placeholder="Bride and groom at sunset"
@@ -503,13 +626,14 @@ export default function AdminDashboard() {
               <div className="admin-two-col">
                 <label>
                   Display order
+
                   <input
                     type="number"
                     value={upload.displayOrder}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       setUpload((current) => ({
                         ...current,
-                        displayOrder: e.target.value,
+                        displayOrder: event.target.value,
                       }))
                     }
                   />
@@ -519,15 +643,17 @@ export default function AdminDashboard() {
                   <input
                     type="checkbox"
                     checked={upload.featured}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       setUpload((current) => ({
                         ...current,
-                        featured: e.target.checked,
+                        featured: event.target.checked,
                       }))
                     }
                   />
+
                   <span>
-                    <Star size={15} /> Show on homepage
+                    <Star size={15} />
+                    Show on homepage
                   </span>
                 </label>
               </div>
@@ -549,23 +675,38 @@ export default function AdminDashboard() {
               <span>03</span>
               <h2>Photo library</h2>
             </div>
+
             <strong>{photos.length} images</strong>
           </div>
 
           {photos.length === 0 ? (
             <div className="empty-state">
               <h3>No uploaded images yet.</h3>
-              <p>Create a category, then upload the first photo.</p>
+
+              <p>
+                Create a category, then upload the first photo.
+              </p>
             </div>
           ) : (
             <div className="admin-photo-grid">
               {photos.map((photo) => (
-                <article className="admin-photo-card" key={photo.id}>
+                <article
+                  className="admin-photo-card"
+                  key={photo.id}
+                >
                   <div className="admin-photo-image">
-                    <img src={photo.image_url} alt={photo.alt_text || photo.title} />
+                    <img
+                      src={photo.image_url}
+                      alt={photo.alt_text || photo.title}
+                    />
+
                     {photo.featured && (
                       <span className="admin-featured-badge">
-                        <Star size={12} fill="currentColor" /> Featured
+                        <Star
+                          size={12}
+                          fill="currentColor"
+                        />
+                        Featured
                       </span>
                     )}
                   </div>
@@ -573,9 +714,14 @@ export default function AdminDashboard() {
                   <div className="admin-photo-body">
                     <div>
                       <strong>{photo.title}</strong>
+
                       <small>
-                        {photo.categories?.name || "Uncategorized"}
-                        {photo.location ? ` · ${photo.location}` : ""}
+                        {photo.categories?.name ||
+                          "Uncategorized"}
+
+                        {photo.location
+                          ? ` · ${photo.location}`
+                          : ""}
                       </small>
                     </div>
 
@@ -585,7 +731,9 @@ export default function AdminDashboard() {
                           photo.featured ? "active" : ""
                         }`}
                         type="button"
-                        onClick={() => toggleFeatured(photo)}
+                        onClick={() =>
+                          toggleFeatured(photo)
+                        }
                         title="Toggle homepage featured"
                       >
                         {photo.featured ? (
@@ -597,10 +745,14 @@ export default function AdminDashboard() {
 
                       <button
                         className={`icon-button ${
-                          photo.display_order < 0 ? "active" : ""
+                          photo.display_order < 0
+                            ? "active"
+                            : ""
                         }`}
                         type="button"
-                        onClick={() => setAsCategoryCover(photo)}
+                        onClick={() =>
+                          setAsCategoryCover(photo)
+                        }
                         title="Set as category cover"
                       >
                         <ImagePlus size={16} />
@@ -609,7 +761,9 @@ export default function AdminDashboard() {
                       <button
                         className="icon-button danger"
                         type="button"
-                        onClick={() => deletePhoto(photo)}
+                        onClick={() =>
+                          deletePhoto(photo)
+                        }
                         title="Delete photo"
                       >
                         <Trash2 size={16} />
