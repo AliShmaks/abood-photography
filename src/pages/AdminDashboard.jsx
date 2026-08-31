@@ -5,6 +5,7 @@ import {
   Check,
   ImagePlus,
   LogOut,
+  Pencil,
   Plus,
   Star,
   Trash2,
@@ -147,6 +148,53 @@ export default function AdminDashboard() {
       setCategoryName("");
       setCategoryOrder(0);
       setMessage("Category added.");
+      await loadData();
+    }
+
+    setBusy(false);
+  }
+
+  async function editCategory(category) {
+    const newName = window.prompt(
+      "Enter the new category name:",
+      category.name
+    );
+
+    if (newName === null) return;
+
+    const trimmedName = newName.trim();
+
+    if (!trimmedName) {
+      setMessage("Category name cannot be empty.");
+      return;
+    }
+
+    if (trimmedName === category.name) {
+      return;
+    }
+
+    const newSlug = slugify(trimmedName);
+
+    if (!newSlug) {
+      setMessage("Please enter a valid category name.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    const { error } = await supabase
+      .from("categories")
+      .update({
+        name: trimmedName,
+        slug: newSlug,
+      })
+      .eq("id", category.id);
+
+    if (error) {
+      setMessage(error.message);
+    } else {
+      setMessage(`Category renamed to "${trimmedName}".`);
       await loadData();
     }
 
@@ -432,7 +480,7 @@ export default function AdminDashboard() {
         {message && (
           <div
             className={`admin-message ${
-              /success|added|deleted|updated/i.test(message)
+              /success|added|deleted|updated|renamed/i.test(message)
                 ? "success"
                 : ""
             }`}
@@ -498,14 +546,29 @@ export default function AdminDashboard() {
                     <small>/{category.slug}</small>
                   </div>
 
-                  <button
-                    className="icon-button danger"
-                    type="button"
-                    onClick={() => deleteCategory(category)}
-                    aria-label={`Delete ${category.name}`}
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="admin-card-actions">
+                    <button
+                      className="icon-button"
+                      type="button"
+                      onClick={() => editCategory(category)}
+                      aria-label={`Edit ${category.name}`}
+                      title="Edit category"
+                      disabled={busy}
+                    >
+                      <Pencil size={16} />
+                    </button>
+
+                    <button
+                      className="icon-button danger"
+                      type="button"
+                      onClick={() => deleteCategory(category)}
+                      aria-label={`Delete ${category.name}`}
+                      title="Delete category"
+                      disabled={busy}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -535,9 +598,7 @@ export default function AdminDashboard() {
                   }
                   required
                 >
-                  <option value="">
-                    Choose category
-                  </option>
+                  <option value="">Choose category</option>
 
                   {categories.map((category) => (
                     <option
@@ -716,8 +777,7 @@ export default function AdminDashboard() {
                       <strong>{photo.title}</strong>
 
                       <small>
-                        {photo.categories?.name ||
-                          "Uncategorized"}
+                        {photo.categories?.name || "Uncategorized"}
 
                         {photo.location
                           ? ` · ${photo.location}`
@@ -731,9 +791,7 @@ export default function AdminDashboard() {
                           photo.featured ? "active" : ""
                         }`}
                         type="button"
-                        onClick={() =>
-                          toggleFeatured(photo)
-                        }
+                        onClick={() => toggleFeatured(photo)}
                         title="Toggle homepage featured"
                       >
                         {photo.featured ? (
@@ -750,9 +808,7 @@ export default function AdminDashboard() {
                             : ""
                         }`}
                         type="button"
-                        onClick={() =>
-                          setAsCategoryCover(photo)
-                        }
+                        onClick={() => setAsCategoryCover(photo)}
                         title="Set as category cover"
                       >
                         <ImagePlus size={16} />
@@ -761,9 +817,7 @@ export default function AdminDashboard() {
                       <button
                         className="icon-button danger"
                         type="button"
-                        onClick={() =>
-                          deletePhoto(photo)
-                        }
+                        onClick={() => deletePhoto(photo)}
                         title="Delete photo"
                       >
                         <Trash2 size={16} />
