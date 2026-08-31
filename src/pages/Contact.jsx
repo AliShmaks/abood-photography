@@ -207,9 +207,7 @@ export default function Contact() {
                   Send on WhatsApp <Send size={17} />
                 </button>
 
-                <span className="form-note">
-                  No backend needed — this opens WhatsApp with the details.
-                </span>
+              
               </div>
             </form>
           </Reveal>

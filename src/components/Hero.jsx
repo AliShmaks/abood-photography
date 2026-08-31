@@ -96,7 +96,6 @@ const heroPhoto = "/images/8924afdfa73b4d14ae20cfe94efecbf0.png";
 
             <div className="hero-pro-number">01</div>
             <div className="hero-pro-caption">
-              <span>Selected image</span>
               <strong>{site.name}</strong>
             </div>
           </div>
