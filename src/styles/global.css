@@ -2712,11 +2712,33 @@ img {
 
 @media (max-width: 640px) {
   .hero-new {
-    height: 100svh;
-    min-height: 620px;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100dvh;
+
+    overflow: hidden;
+    background: #111;
+  }
+
+  .hero-new-image-wrap {
+    position: absolute;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    overflow: hidden;
+    background: #111;
   }
 
   .hero-new-image-motion {
+    position: absolute;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
     display: block;
   }
 
@@ -2726,13 +2748,18 @@ img {
 
     max-width: none;
 
+    display: block;
+
     object-fit: cover;
-    object-position: 53% 8%;
+    object-position: 53% 14%;
 
     transform: none;
   }
 
   .hero-new-overlay {
+    position: absolute;
+    inset: 0;
+
     background:
       linear-gradient(
         180deg,
@@ -2745,6 +2772,7 @@ img {
 
   .hero-new-container {
     width: calc(100% - 30px);
+    height: 100%;
 
     padding-top: 88px;
     padding-bottom: 20px;
@@ -2752,20 +2780,17 @@ img {
 
   .hero-new-meta {
     font-size: 8px;
-
     letter-spacing: 0.14em;
   }
 
   .hero-new-main {
     width: 100%;
-
     margin-bottom: 54px;
   }
 
   .hero-new-heading h1,
   .hero-new-heading h2 {
     font-size: clamp(54px, 16vw, 74px);
-
     line-height: 0.84;
   }
 
@@ -2780,7 +2805,6 @@ img {
     gap: 20px;
 
     width: 100%;
-
     margin-top: 28px;
   }
 
@@ -2804,7 +2828,6 @@ img {
     gap: 8px;
 
     font-size: 7px;
-
     letter-spacing: 0.11em;
   }
 }
@@ -2816,7 +2839,7 @@ img {
 
 @media (max-width: 390px) {
   .hero-new-image-motion img {
-    object-position: 54% 6%;
+    object-position: 54% 14%;
   }
 
   .hero-new-heading h1,
