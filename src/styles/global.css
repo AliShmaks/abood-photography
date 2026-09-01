@@ -2839,7 +2839,7 @@ img {
 
 @media (max-width: 390px) {
   .hero-new-image-motion img {
-    object-position: 54% 14%;
+    object-position: 54% 44%;
   }
 
   .hero-new-heading h1,
@@ -2891,5 +2891,24 @@ img {
   .hero-new-image-motion,
   .hero-new-main {
     transform: none !important;
+  }
+}
+
+
+@media (max-width: 390px) {
+  .hero-new-image-motion img {
+    position: relative;
+    top: 50px;
+
+    width: 100%;
+    height: calc(100% + 28px);
+
+    object-fit: cover;
+    object-position: 54% center;
+  }
+
+  .hero-new-heading h1,
+  .hero-new-heading h2 {
+    font-size: 51px;
   }
 }
