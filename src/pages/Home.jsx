@@ -10,10 +10,11 @@ import CTA from "../components/CTA";
 import { about } from "../data/siteData";
 import PageTransition from "../components/PageTransition";
 
-export default function Home() {
+export default function Home({ startHeroAnimation }) {
   return (
     <PageTransition>
-      <Hero />
+      <Hero startAnimation={startHeroAnimation} />
+
       <CategoryShowcase />
 
       <div id="selected-work">
@@ -24,14 +25,19 @@ export default function Home() {
         <div className="container about-home-grid">
           <Reveal>
             <div className="about-home-image">
-              <img src={about.image} alt="Photographer portrait placeholder" loading="lazy" />
+              <img
+                src={about.image}
+                alt="Photographer portrait placeholder"
+                loading="lazy"
+              />
             </div>
           </Reveal>
 
-          <Reveal delay={.1}>
+          <Reveal delay={0.1}>
             <span className="eyebrow">{about.eyebrow}</span>
             <h2 className="title-lg">{about.title}</h2>
             <p className="lead">{about.paragraphs[0]}</p>
+
             <Link className="text-link" to="/about">
               Meet Abood <ArrowUpRight size={16} />
             </Link>

@@ -1,109 +1,167 @@
-import { motion } from "motion/react";
-import { ArrowDownRight, ArrowRight } from "lucide-react";
+import { motion, useScroll, useTransform } from "motion/react";
+import { ArrowUpRight } from "lucide-react";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { site } from "../data/siteData";
-import { usePortfolio } from "../hooks/usePortfolio";
 
-export default function Hero() {
-  const { featured, photos } = usePortfolio();
+const ease = [0.22, 1, 0.36, 1];
 
-const heroPhoto = "/images/8924afdfa73b4d14ae20cfe94efecbf0.png";
+export default function Hero({ startAnimation }) {
+  const heroRef = useRef(null);
+
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+
+  const imageY = useTransform(
+    scrollYProgress,
+    [0, 1],
+    ["0%", "4%"]
+  );
+
+  const contentY = useTransform(
+    scrollYProgress,
+    [0, 1],
+    [0, 24]
+  );
+
+  const contentOpacity = useTransform(
+    scrollYProgress,
+    [0, 0.8],
+    [1, 0.3]
+  );
+
+  const heroPhoto =
+    "/images/8924afdfa73b4d14ae20cfe94efecbf0.png";
 
   return (
-    <section className="hero-pro">
-      <div className="container hero-pro-grid">
-        <div className="hero-pro-copy">
-          <motion.div
-            className="hero-pro-kicker"
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: .55 }}
-          >
-            <span>Photographer</span>
-            <span className="hero-pro-dot" />
-            <span>{site.location}</span>
-          </motion.div>
+    <section ref={heroRef} className="hero-new">
+      <div className="hero-new-image-wrap">
+        <motion.div
+          className="hero-new-image-motion"
+          style={{ y: imageY }}
+        >
+          <motion.img
+            src={heroPhoto}
+            alt={`${site.name} photography`}
+            initial={{ scale: 1.03 }}
+            animate={{
+              scale: startAnimation ? 1 : 1.03,
+            }}
+            transition={{
+              duration: 1.6,
+              ease,
+            }}
+          />
+        </motion.div>
+      </div>
 
-          <motion.h1
-            className="hero-pro-title"
-            initial={{ opacity: 0, y: 34 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: .08, duration: .85, ease: [0.22, 1, 0.36, 1] }}
-          >
-            Stories,
-            <br />
-            <em>beautifully</em>
-            <br />
-            remembered.
-          </motion.h1>
+      <div className="hero-new-overlay" />
 
-          <motion.p
-            className="hero-pro-text"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: .22, duration: .65 }}
-          >
-            {site.name} creates timeless wedding, portrait and event photography
-            with a natural, elegant and cinematic approach.
-          </motion.p>
-
-          <motion.div
-            className="hero-pro-actions"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: .34, duration: .6 }}
-          >
-            <Link className="btn" to="/portfolio">
-              View portfolio <ArrowRight size={17} />
-            </Link>
-            <Link className="hero-pro-book" to="/contact">
-              Book a session <ArrowDownRight size={16} />
-            </Link>
-          </motion.div>
-
-          <motion.div
-            className="hero-pro-bottom"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: .5, duration: .75 }}
-          >
-            <div>
-              <span className="hero-pro-small-label">Based in</span>
-              <strong>{site.location}</strong>
-            </div>
-
-            <div>
-              <span className="hero-pro-small-label">Specializing in</span>
-              <strong>People & celebrations</strong>
-            </div>
-          </motion.div>
-        </div>
+      <div className="hero-new-container">
+        <motion.div
+          className="hero-new-meta"
+          initial={{ opacity: 0, y: -10 }}
+          animate={
+            startAnimation
+              ? { opacity: 1, y: 0 }
+              : { opacity: 0, y: -10 }
+          }
+          transition={{
+            duration: 0.7,
+            ease,
+          }}
+        >
+          <span>Photographer</span>
+          <span>{site.location}</span>
+        </motion.div>
 
         <motion.div
-          className="hero-pro-media"
-          initial={{ opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: .1, duration: .95, ease: [0.22, 1, 0.36, 1] }}
+          className="hero-new-main"
+          style={{
+            y: contentY,
+            opacity: contentOpacity,
+          }}
         >
-          <div className="hero-pro-frame">
-            <motion.img
-              src={heroPhoto}
-              alt={`${site.name} photography`}
-              initial={{ scale: 1.045 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: .15, duration: 1.45, ease: [0.22, 1, 0.36, 1] }}
-            />
+          <div className="hero-new-heading">
+            <div className="hero-new-mask">
+              <motion.h1
+                initial={{ y: "110%" }}
+                animate={{
+                  y: startAnimation ? "0%" : "110%",
+                }}
+                transition={{
+                  duration: 1,
+                  ease,
+                }}
+              >
+                Abood
+              </motion.h1>
+            </div>
 
-            <div className="hero-pro-number">01</div>
-            <div className="hero-pro-caption">
-              <strong>{site.name}</strong>
+            <div className="hero-new-mask hero-new-second-line">
+              <motion.h2
+                initial={{ y: "110%" }}
+                animate={{
+                  y: startAnimation ? "0%" : "110%",
+                }}
+                transition={{
+                  delay: startAnimation ? 0.08 : 0,
+                  duration: 1,
+                  ease,
+                }}
+              >
+                Al Hussein
+              </motion.h2>
             </div>
           </div>
 
-          <div className="hero-pro-accent">
-            <span>Est.</span>
-            <strong>Jordan</strong>
-          </div>
+          <motion.div
+            className="hero-new-info"
+            initial={{ opacity: 0, y: 18 }}
+            animate={
+              startAnimation
+                ? { opacity: 1, y: 0 }
+                : { opacity: 0, y: 18 }
+            }
+            transition={{
+              delay: startAnimation ? 0.35 : 0,
+              duration: 0.8,
+              ease,
+            }}
+          >
+            <p>
+              Capturing people, moments and stories
+              through a cinematic perspective.
+            </p>
+
+            <Link to="/portfolio" className="hero-new-cta">
+              <span>Explore portfolio</span>
+
+              <span className="hero-new-cta-circle">
+                <ArrowUpRight size={17} />
+              </span>
+            </Link>
+          </motion.div>
+        </motion.div>
+
+        <motion.div
+          className="hero-new-footer"
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: startAnimation ? 1 : 0,
+          }}
+          transition={{
+            delay: startAnimation ? 0.55 : 0,
+            duration: 0.8,
+          }}
+        >
+          <span>Jordan</span>
+
+          <div className="hero-new-footer-line" />
+
+          <span>Selected Photography</span>
         </motion.div>
       </div>
     </section>
