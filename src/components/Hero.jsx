@@ -112,7 +112,7 @@ export default function Hero({ startAnimation }) {
                   ease,
                 }}
               >
-                Al Hussein
+                Al Husain
               </motion.h2>
             </div>
           </div>
