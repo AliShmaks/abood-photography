@@ -2912,3 +2912,23 @@ img {
     font-size: 51px;
   }
 }
+
+
+
+@media (max-width: 640px) {
+  .hero-new-image-motion img {
+    position: relative;
+    top: 50px;
+
+    width: 100%;
+    height: calc(100% + 28px);
+
+    object-fit: cover;
+    object-position: 54% center;
+  }
+
+  .hero-new-heading h1,
+  .hero-new-heading h2 {
+    font-size: 51px;
+  }
+}
