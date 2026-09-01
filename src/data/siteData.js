@@ -4,7 +4,7 @@
 // ================================================================
 
 export const site = {
-  name: "Abood Al Husain",
+  name: "Abood Alhsin",
   shortName: "ABOOD",
   role: "Photographer & Visual Storyteller",
   tagline: "Stories remembered in light.",
@@ -13,7 +13,7 @@ export const site = {
   location: "Jordan",
   phoneDisplay: "+962 78 535 8930",
   phoneRaw: "962785358930",
-  email: "hello@aboodalhusain.com",
+  email: "hello@aboodalhsin.com",
   instagram: "https://www.instagram.com/aboodalhsin/",
   instagramHandle: "@aboodalhsin",
   whatsappMessage:
@@ -199,7 +199,7 @@ export const about = {
   eyebrow: "Behind the camera",
   title: "Photographs should feel like memories, not poses.",
   paragraphs: [
-    "I’m Abood Al Husain, a photographer based in Jordan. I’m drawn to honest moments, expressive light and the small details that make every story personal.",
+    "I’m Abood Alhsin, a photographer based in Jordan. I’m drawn to honest moments, expressive light and the small details that make every story personal.",
     "My approach is calm and intentional. I guide when needed, step back when the moment should unfold naturally, and create images that still feel meaningful years later.",
   ],
   image:

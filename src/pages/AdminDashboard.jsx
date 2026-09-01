@@ -291,7 +291,7 @@ export default function AdminDashboard() {
           upload.altText.trim() ||
           `${
             upload.title.trim() || selectedCategory.name
-          } photography by Abood Al Husain`,
+          } photography by Abood Alhsin`,
         featured: Boolean(upload.featured),
         display_order: Number(upload.displayOrder) || 0,
         image_url: publicUrlData.publicUrl,
